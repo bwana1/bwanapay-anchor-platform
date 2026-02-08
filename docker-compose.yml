@@ -1,0 +1,48 @@
+services:
+  sep-server:
+    image: stellar/anchor-platform:latest
+    command: --sep-server
+    env_file:
+      - ./dev.env
+    volumes:
+      - ./config:/home
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+  platform-server:
+    image: stellar/anchor-platform:latest
+    command: --platform-server
+    env_file:
+      - ./dev.env
+    volumes:
+      - ./config:/home
+    ports:
+      - "8085:8085"
+    depends_on:
+      - db
+  stellar-observer:
+    image: stellar/anchor-platform:latest
+    command: --stellar-observer
+    env_file:
+      - ./dev.env
+    volumes:
+      - ./config:/home
+    depends_on:
+      - db
+  db:
+    image: postgres:14
+    ports:
+      - "5432:5432"
+    env_file:
+      - ./dev.env
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+  business-server:
+    build: .
+    ports:
+      - "8081:8081"
+    env_file:
+      - ./dev.env
+    depends_on:
+      - platform-server

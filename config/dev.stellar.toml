@@ -1,0 +1,20 @@
+ACCOUNTS = ["GBXNUYF3J6LCYBC33CKDDJUPRSVEURKTGGP2CBSV6JNTP7BU766UMAX7"]
+SIGNING_KEY = "GBDCIPVATEVRFJM5IPOLET6GM3CKMUCE27RSRO67EEZ6VTV4EBG4A5JZ"
+NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
+
+TRANSFER_SERVER_SEP0024 = "http://localhost:8080/sep24"
+WEB_AUTH_ENDPOINT = "http://localhost:8080/auth"
+
+[[CURRENCIES]]
+code = "USDC"
+issuer = "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
+status = "test"
+is_asset_anchored = false
+desc = "USD Coin issued by Circle"
+
+[DOCUMENTATION]
+ORG_NAME = "BwanaPay"
+ORG_URL = "https://bwanapay.com"
+ORG_DESCRIPTION = "A cross-border payment solution for Africa"
+ORG_OFFICIAL_EMAIL = "mail@bwanapay.com"
+ORG_SUPPORT_EMAIL = "support@bwanapay.com"

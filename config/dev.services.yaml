@@ -1,0 +1,16 @@
+version: 1
+platform_server:
+  port: 8085
+assets:
+  type: file
+  value: /home/dev.assets.yaml
+data:
+  type: postgres
+  server: db
+  database: platform
+  flyway_enabled: true
+sep24:
+  interactive_url:
+    base_url: "http://localhost/sep24"
+  more_info_url:
+    base_url: "http://localhost/sep24/info"
