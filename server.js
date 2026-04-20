@@ -1,253 +1,287 @@
-/** Complete Anchor Platform Business Server Implementation */
-
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const fetch = require('node-fetch');
+const fetch = require("node-fetch");
+
 const app = express();
 const port = process.env.BUSINESS_SERVER_PORT;
 
-/*
- * We'll store user session data in memory for this example, but production systems
- * should store this data somewhere more persistent.
- */
 const sessions = {};
-
-// Production systems should either let the Anchor Platform generate its own memos
-// or have your custodial service generate a memo for each transaction.
 const transactionMemos = {};
 
 app.use(express.json());
 
-/*
- * Create an authenticated session for the user.
- *
- * Return a session token to be used in future requests as well as the
- * user data. Note that you may not have a user for the stellar account
- * provided, in which case the user should go through your onboarding
- * process.
-*/
+function requireEnv(name) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+function getPlatformApiBaseUrl() {
+  return requireEnv("PLATFORM_API_BASE_URL");
+}
+
+function getPlatformApiAuthToken() {
+  const secret = requireEnv("SECRET_PLATFORM_API_AUTH_SECRET");
+
+  return jwt.sign(
+    {
+      sub: "business-server",
+      iss: "business-server",
+      aud: "platform-server"
+    },
+    secret,
+    {
+      algorithm: "HS256",
+      expiresIn: "5m"
+    }
+  );
+}
+
+function getPlatformAuthHeaders(includeJson = false) {
+  const headers = {
+    Authorization: `Bearer ${getPlatformApiAuthToken()}`
+  };
+
+  if (includeJson) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  return headers;
+}
+
 app.post("/session", async (req, res) => {
   let decodedPlatformToken;
+
   try {
     decodedPlatformToken = validatePlatformToken(req.body.platformToken);
   } catch (err) {
-    res.status(400).send({ "error": err });
-    return;
+    return res.status(400).send({ error: String(err) });
   }
 
-  // The stellar account of the authenticated user
-  let stellarAccount = decodedPlatformToken.sub;
+  const stellarAccount = decodedPlatformToken.sub;
   console.log("Authenticated stellar account:", stellarAccount);
 
-  // Get the user data for this account
-  let user = getUser(stellarAccount);
+  const user = getUser(stellarAccount);
 
-  // Create a new session
-  let sessionToken = jwt.sign(
-    { "jti": decodedPlatformToken.jti },
-    process.env.SESSION_JWT_SECRET
+  const sessionToken = jwt.sign(
+    { jti: decodedPlatformToken.jti },
+    requireEnv("SESSION_JWT_SECRET")
   );
+
   sessions[sessionToken] = {
     timestamp: new Date(),
-    account: stellarAccount,
+    account: stellarAccount
   };
 
-  // Return the session token and user data
-  res.send({
-    "token": sessionToken,
-    "user": user
+  return res.send({
+    token: sessionToken,
+    user
   });
 });
 
-/* 
- * Process transaction details and update the Platform
- */
 app.post("/transaction", async (req, res) => {
-  let sessionToken;
   try {
-    sessionToken = validateSessionToken(req.headers.authorization);
-  } catch (err) {
-    res.status(400).send({ "error": err });
-    return;
-  }
-  // assuming this is a withdrawal transaction, we'll provide a memo, which is
-  // required by our third-party custodian to credit us the payment. When the
-  // payment is made with this memo, we can match the on-chain payment with the
-  // transaction in the Anchor Platform's database.
-  transactionMemos[req.body.transaction.id] = parseInt(Math.random() * 100000);
-  let rpcRequestBody = [
-    {
-      "id": 1,
-      "jsonrpc": "2.0",
-      "method": "request_onchain_funds",
-      "params": {
-        "transaction_id": req.body.transaction.id,
-        "message": "waiting for the user to provide off-chain funds.",
-        "amount_in": {
-          "amount": req.body.amount_in.amount,
-          "asset": "stellar:USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
-        },
-        "amount_out": {
-          "amount": req.body.amount_out.amount,
-          "asset": "iso4217:USD"
-        },
-        "fee_details": {
-          "total": req.body.fee_details.total,
-          "asset": "stellar:USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
-        },
-        "destination_account": "GD...G",
-        "memo": transactionMemos[req.body.transaction.id],
-        "memo_type": "id"
-      }
+    validateSessionToken(req.headers.authorization);
+
+    if (!req.body?.transaction?.id) {
+      throw new Error("missing transaction.id");
     }
-  ];
-  
-  let platformResponse;
-  try {
-    platformResponse = await updatePlatformTransaction(rpcRequestBody);
+    if (!req.body?.amount_in?.amount) {
+      throw new Error("missing amount_in.amount");
+    }
+    if (!req.body?.amount_out?.amount) {
+      throw new Error("missing amount_out.amount");
+    }
+    if (!req.body?.fee_details?.total) {
+      throw new Error("missing fee_details.total");
+    }
+
+    const transactionId = req.body.transaction.id;
+    transactionMemos[transactionId] = parseInt(Math.random() * 100000, 10);
+
+    // For SEP-24 deposit transactions in "incomplete" state, use request_offchain_funds.
+    // Keep the payload aligned to the Platform example and omit "instructions".
+    const rpcRequestBody = [
+      {
+        id: 1,
+        jsonrpc: "2.0",
+        method: "request_offchain_funds",
+        params: {
+          transaction_id: transactionId,
+          message: "Request offchain funds",
+          amount_in: {
+            amount: req.body.amount_in.amount,
+            asset: "iso4217:USD"
+          },
+          amount_out: {
+            amount: req.body.amount_out.amount,
+            asset: "stellar:USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
+          },
+          fee_details: {
+            total: req.body.fee_details.total,
+            asset: "iso4217:USD"
+          },
+          amount_expected: {
+            amount: req.body.amount_in.amount
+          }
+        }
+      }
+    ];
+
+    const platformResponse = await updatePlatformTransaction(rpcRequestBody);
+
+    const transaction = Array.isArray(platformResponse)
+      ? platformResponse[0]?.result || platformResponse[0]
+      : platformResponse?.result || platformResponse;
+
+    return res.send({ transaction });
   } catch (err) {
-    res.status(500).send({ "error": err });
-    return;
+    console.error("Transaction route error:", err);
+    return res.status(500).send({ error: String(err.message || err) });
   }
-  res.send({
-    "transaction": platformResponse.records[0]
-  });
 });
 
-// Add a testing endpoint for JWT verification
-app.get("/test-jwt", (req, res) => {
-  const testJwt = jwt.sign(
-    { "test": "data" }, 
-    process.env.SECRET_SEP10_JWT_SECRET,
-    { algorithm: "HS256" }
-  );
-  
+app.get("/platform-transaction/:id", async (req, res) => {
   try {
+    const tx = await getPlatformTransaction(req.params.id);
+    return res.send(tx);
+  } catch (err) {
+    console.error("Platform transaction inspection error:", err);
+    return res.status(500).send({ error: String(err.message || err) });
+  }
+});
+
+app.get("/test-jwt", (req, res) => {
+  try {
+    const testJwt = jwt.sign(
+      { test: "data" },
+      requireEnv("SECRET_SEP10_JWT_SECRET"),
+      { algorithm: "HS256" }
+    );
+
     const verified = jwt.verify(
-      testJwt, 
-      process.env.SECRET_SEP10_JWT_SECRET,
+      testJwt,
+      requireEnv("SECRET_SEP10_JWT_SECRET"),
       { algorithms: ["HS256"] }
     );
-    res.send({
-      "success": true,
-      "message": "JWT signing and verification works correctly",
-      "jwt": testJwt,
-      "verified": verified
+
+    return res.send({
+      success: true,
+      message: "JWT signing and verification works correctly",
+      jwt: testJwt,
+      verified
     });
   } catch (err) {
-    res.status(500).send({
-      "success": false,
-      "message": "JWT verification failed",
-      "error": err.toString()
+    return res.status(500).send({
+      success: false,
+      message: "JWT verification failed",
+      error: err.toString()
     });
   }
 });
 
-/*
- * Validate the signature and contents of the platform's token
- */
 function validatePlatformToken(token) {
   if (!token) {
     throw "missing 'platformToken'";
   }
 
   let decodedToken;
-  
-  // Try both secrets
+
   try {
-    // First try with interactive URL secret
     try {
-      decodedToken = jwt.verify(token, process.env.SECRET_SEP24_INTERACTIVE_URL_JWT_SECRET, { algorithms: ["HS256"] });
+      decodedToken = jwt.verify(
+        token,
+        requireEnv("SECRET_SEP24_INTERACTIVE_URL_JWT_SECRET"),
+        { algorithms: ["HS256"] }
+      );
       console.log("Verified with INTERACTIVE_URL secret");
-    } catch (err1) {
-      console.error("Interactive URL verification failed:", err1);
-      
-      // If that fails, try with more info URL secret
-      try {
-        decodedToken = jwt.verify(token, process.env.SECRET_SEP24_MORE_INFO_URL_JWT_SECRET, { algorithms: ["HS256"] });
-        console.log("Verified with MORE_INFO_URL secret");
-      } catch (err2) {
-        console.error("More info URL verification failed:", err2);
-        throw new Error("Failed with both secrets");
-      }
+    } catch {
+      decodedToken = jwt.verify(
+        token,
+        requireEnv("SECRET_SEP24_MORE_INFO_URL_JWT_SECRET"),
+        { algorithms: ["HS256"] }
+      );
+      console.log("Verified with MORE_INFO_URL secret");
     }
   } catch (err) {
-    console.error("JWT verification error:", err);
+    console.error("Platform token verification error:", err.message || err);
     throw "invalid 'platformToken'";
   }
-  
+
   if (!decodedToken.jti) {
     throw "invalid 'platformToken': missing 'jti'";
   }
+
   return decodedToken;
 }
 
-/*
- * Validate the session token from the authorization header
- */
 function validateSessionToken(authorizationHeader) {
   if (!authorizationHeader) {
     throw "missing authorization header";
   }
-  
-  let parts = authorizationHeader.split(" ");
-  if (parts.length != 2 || parts[0] != "Bearer") {
+
+  const parts = authorizationHeader.split(" ");
+  if (parts.length !== 2 || parts[0] !== "Bearer") {
     throw "invalid authorization header format";
   }
-  
-  let sessionToken = parts[1];
+
+  const sessionToken = parts[1];
+
   try {
-    jwt.verify(sessionToken, process.env.SESSION_JWT_SECRET);
+    jwt.verify(sessionToken, requireEnv("SESSION_JWT_SECRET"));
   } catch {
     throw "invalid session token";
   }
-  
+
   if (!sessions[sessionToken]) {
     throw "expired session";
   }
-  
+
   return sessionToken;
 }
 
-/*
- * Send a transaction update to the Platform API
- */
 async function updatePlatformTransaction(requestBody) {
-  let response = await fetch(
-    `${process.env.PLATFORM_API_BASE_URL}/transactions`,
+  const response = await fetch(`${getPlatformApiBaseUrl()}`, {
+    method: "POST",
+    headers: getPlatformAuthHeaders(true),
+    body: JSON.stringify(requestBody)
+  });
+
+  if (response.status !== 200) {
+    const body = await safeReadBody(response);
+    throw new Error(`platform JSON-RPC POST failed: ${response.status} ${body}`);
+  }
+
+  return await response.json();
+}
+
+async function getPlatformTransaction(transactionId) {
+  const response = await fetch(
+    `${getPlatformApiBaseUrl()}/transactions/${transactionId}`,
     {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(requestBody)
+      method: "GET",
+      headers: getPlatformAuthHeaders(false)
     }
   );
-  
-  if (response.status != 200) {
-    throw `unexpected status code: ${response.status}`;
+
+  if (response.status !== 200) {
+    const body = await safeReadBody(response);
+    throw new Error(`platform GET /transactions/${transactionId} failed: ${response.status} ${body}`);
   }
-  
+
   return await response.json();
 }
 
-/*
- * Fetch transaction data from the Platform API
- */
-async function getPlatformTransaction(transactionId) {
-  let response = await fetch(`${process.env.PLATFORM_API_BASE_URL}/transactions/${transactionId}`);
-  
-  if (response.status != 200) {
-    throw `unexpected status code: ${response.status}`;
+async function safeReadBody(response) {
+  try {
+    return await response.text();
+  } catch {
+    return "<unable to read response body>";
   }
-  
-  return await response.json();
 }
 
-/*
- * Query your own database for the user based on account:memo string (sub).
- * Returns null in this example.
- */
 function getUser(sub) {
   return null;
 }
@@ -256,33 +290,33 @@ app.listen(port, () => {
   console.log(`Business server listening on port ${port}`);
 });
 
-// Background polling process for transaction updates
 (async () => {
   while (true) {
-    await new Promise(r => setTimeout(r, 2000));
-    
-    // Skip if there are no transactions to check
+    await new Promise((r) => setTimeout(r, 2000));
+
     if (Object.keys(transactionMemos).length === 0) {
       continue;
     }
-    
-    let requestPromises = [];
+
+    const requestPromises = [];
     for (const transactionId in transactionMemos) {
       requestPromises.push(getPlatformTransaction(transactionId));
     }
-    
+
     try {
-      let transactions = await Promise.all(requestPromises);
+      const transactions = await Promise.all(requestPromises);
+
       for (const transaction of transactions) {
-        // assuming all requests were successful
-        if (transaction.status == "pending_anchor") {
-          // initiate off-chain delivery of funds
-          console.log(`received payment for transaction ${transaction.id}`);
-          // In production, you would trigger your business logic here
+        if (transaction.status === "pending_user_transfer_start") {
+          console.log(`transaction ${transaction.id} is waiting for off-chain funds`);
+        }
+
+        if (transaction.status === "pending_anchor") {
+          console.log(`received off-chain funds for transaction ${transaction.id}`);
         }
       }
     } catch (error) {
-      console.error("Error polling for transactions:", error);
+      console.error("Error polling for transactions:", error.message || error);
     }
   }
 })();
