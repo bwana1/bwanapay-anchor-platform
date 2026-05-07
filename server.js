@@ -1,9 +1,19 @@
+/**
+ * BwanaPay Business Server
+ *
+ * Local development business server for validating BwanaPay Anchor Platform flows.
+ * This file is intended for local development and testnet preparation only.
+ *
+ * It does not represent production-ready code or a live regulated financial service.
+ * Do not commit real environment secrets, private keys, JWTs, or production credentials.
+ */
+
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const fetch = require("node-fetch");
 
 const app = express();
-const port = process.env.BUSINESS_SERVER_PORT;
+const port = process.env.BUSINESS_SERVER_PORT || 8081;
 
 const sessions = {};
 const transactionMemos = {};
@@ -12,9 +22,11 @@ app.use(express.json());
 
 function requireEnv(name) {
   const value = process.env[name];
+
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
+
   return value;
 }
 
@@ -51,6 +63,10 @@ function getPlatformAuthHeaders(includeJson = false) {
   return headers;
 }
 
+/**
+ * Creates a local business-layer session from a platform-issued token
+ * returned during the SEP-24 interactive flow.
+ */
 app.post("/session", async (req, res) => {
   let decodedPlatformToken;
 
@@ -61,7 +77,7 @@ app.post("/session", async (req, res) => {
   }
 
   const stellarAccount = decodedPlatformToken.sub;
-  console.log("Authenticated stellar account:", stellarAccount);
+  console.log("Authenticated Stellar account:", stellarAccount);
 
   const user = getUser(stellarAccount);
 
@@ -81,6 +97,13 @@ app.post("/session", async (req, res) => {
   });
 });
 
+/**
+ * Advances a local SEP-24 deposit transaction through the Anchor Platform.
+ *
+ * For the validated demo flow, an incomplete SEP-24 deposit transaction is
+ * progressed using request_offchain_funds, resulting in
+ * pending_user_transfer_start.
+ */
 app.post("/transaction", async (req, res) => {
   try {
     validateSessionToken(req.headers.authorization);
@@ -88,12 +111,15 @@ app.post("/transaction", async (req, res) => {
     if (!req.body?.transaction?.id) {
       throw new Error("missing transaction.id");
     }
+
     if (!req.body?.amount_in?.amount) {
       throw new Error("missing amount_in.amount");
     }
+
     if (!req.body?.amount_out?.amount) {
       throw new Error("missing amount_out.amount");
     }
+
     if (!req.body?.fee_details?.total) {
       throw new Error("missing fee_details.total");
     }
@@ -101,8 +127,6 @@ app.post("/transaction", async (req, res) => {
     const transactionId = req.body.transaction.id;
     transactionMemos[transactionId] = parseInt(Math.random() * 100000, 10);
 
-    // For SEP-24 deposit transactions in "incomplete" state, use request_offchain_funds.
-    // Keep the payload aligned to the Platform example and omit "instructions".
     const rpcRequestBody = [
       {
         id: 1,
@@ -117,7 +141,8 @@ app.post("/transaction", async (req, res) => {
           },
           amount_out: {
             amount: req.body.amount_out.amount,
-            asset: "stellar:USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
+            asset:
+              "stellar:USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
           },
           fee_details: {
             total: req.body.fee_details.total,
@@ -138,21 +163,31 @@ app.post("/transaction", async (req, res) => {
 
     return res.send({ transaction });
   } catch (err) {
-    console.error("Transaction route error:", err);
+    console.error("Transaction route error:", err.message || err);
     return res.status(500).send({ error: String(err.message || err) });
   }
 });
 
+/**
+ * Reads transaction state back from the Anchor Platform.
+ * Used in local development to verify persisted transaction state.
+ */
 app.get("/platform-transaction/:id", async (req, res) => {
   try {
     const tx = await getPlatformTransaction(req.params.id);
     return res.send(tx);
   } catch (err) {
-    console.error("Platform transaction inspection error:", err);
+    console.error("Platform transaction inspection error:", err.message || err);
     return res.status(500).send({ error: String(err.message || err) });
   }
 });
 
+/**
+ * Local JWT health check.
+ *
+ * This route verifies signing and verification using the configured local secret,
+ * but intentionally does not return the generated JWT.
+ */
 app.get("/test-jwt", (req, res) => {
   try {
     const testJwt = jwt.sign(
@@ -161,23 +196,19 @@ app.get("/test-jwt", (req, res) => {
       { algorithm: "HS256" }
     );
 
-    const verified = jwt.verify(
-      testJwt,
-      requireEnv("SECRET_SEP10_JWT_SECRET"),
-      { algorithms: ["HS256"] }
-    );
+    jwt.verify(testJwt, requireEnv("SECRET_SEP10_JWT_SECRET"), {
+      algorithms: ["HS256"]
+    });
 
     return res.send({
       success: true,
-      message: "JWT signing and verification works correctly",
-      jwt: testJwt,
-      verified
+      message: "JWT signing and verification works correctly"
     });
   } catch (err) {
     return res.status(500).send({
       success: false,
       message: "JWT verification failed",
-      error: err.toString()
+      error: String(err.message || err)
     });
   }
 });
@@ -196,14 +227,14 @@ function validatePlatformToken(token) {
         requireEnv("SECRET_SEP24_INTERACTIVE_URL_JWT_SECRET"),
         { algorithms: ["HS256"] }
       );
-      console.log("Verified with INTERACTIVE_URL secret");
+      console.log("Platform token verified with interactive URL secret");
     } catch {
       decodedToken = jwt.verify(
         token,
         requireEnv("SECRET_SEP24_MORE_INFO_URL_JWT_SECRET"),
         { algorithms: ["HS256"] }
       );
-      console.log("Verified with MORE_INFO_URL secret");
+      console.log("Platform token verified with more-info URL secret");
     }
   } catch (err) {
     console.error("Platform token verification error:", err.message || err);
@@ -223,6 +254,7 @@ function validateSessionToken(authorizationHeader) {
   }
 
   const parts = authorizationHeader.split(" ");
+
   if (parts.length !== 2 || parts[0] !== "Bearer") {
     throw "invalid authorization header format";
   }
@@ -243,7 +275,7 @@ function validateSessionToken(authorizationHeader) {
 }
 
 async function updatePlatformTransaction(requestBody) {
-  const response = await fetch(`${getPlatformApiBaseUrl()}`, {
+  const response = await fetch(getPlatformApiBaseUrl(), {
     method: "POST",
     headers: getPlatformAuthHeaders(true),
     body: JSON.stringify(requestBody)
@@ -268,7 +300,9 @@ async function getPlatformTransaction(transactionId) {
 
   if (response.status !== 200) {
     const body = await safeReadBody(response);
-    throw new Error(`platform GET /transactions/${transactionId} failed: ${response.status} ${body}`);
+    throw new Error(
+      `platform GET /transactions/${transactionId} failed: ${response.status} ${body}`
+    );
   }
 
   return await response.json();
@@ -283,6 +317,8 @@ async function safeReadBody(response) {
 }
 
 function getUser(sub) {
+  // Placeholder for future local user lookup / KYC profile mapping.
+  // Current demo flow does not require returning a user object.
   return null;
 }
 
@@ -290,15 +326,22 @@ app.listen(port, () => {
   console.log(`Business server listening on port ${port}`);
 });
 
+/**
+ * Local transaction-state monitor.
+ *
+ * This is used only for development visibility while testing SEP-24 transaction
+ * state progression through the Anchor Platform.
+ */
 (async () => {
   while (true) {
-    await new Promise((r) => setTimeout(r, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     if (Object.keys(transactionMemos).length === 0) {
       continue;
     }
 
     const requestPromises = [];
+
     for (const transactionId in transactionMemos) {
       requestPromises.push(getPlatformTransaction(transactionId));
     }
@@ -308,11 +351,15 @@ app.listen(port, () => {
 
       for (const transaction of transactions) {
         if (transaction.status === "pending_user_transfer_start") {
-          console.log(`transaction ${transaction.id} is waiting for off-chain funds`);
+          console.log(
+            `transaction ${transaction.id} is waiting for off-chain funds`
+          );
         }
 
         if (transaction.status === "pending_anchor") {
-          console.log(`received off-chain funds for transaction ${transaction.id}`);
+          console.log(
+            `received off-chain funds for transaction ${transaction.id}`
+          );
         }
       }
     } catch (error) {
