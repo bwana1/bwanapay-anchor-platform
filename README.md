@@ -1,69 +1,52 @@
-# This repository contains development/testnet infrastructure and does not represent a live regulated financial service.
-
 # BwanaPay Anchor Platform
 
+This repository contains local development infrastructure for BwanaPay’s anchor-based cross-border payment implementation. It does not represent a live regulated financial service.
+
 ## Overview
-Complete SEP-24 anchor platform for African cross-border payments, serving as the technical foundation for SCF Build Award implementation.
+
+BwanaPay is a Zambia-first cross-border payment infrastructure project using Stellar anchor architecture. The goal is to support regulated fiat on- and off-ramp workflows, custodial transaction services, interoperable settlement, and future anchor-to-anchor coordination across African payment corridors.
+
+This repository contains a local Anchor Platform setup used to validate core protocol flows and business-server integration before testnet deployment.
+
+## Current Development Status
+
+The current local implementation includes:
+
+- SEP-1 service discovery
+- SEP-10 challenge-response authentication
+- SEP-24 interactive deposit flow handling
+- Custom business-server session handling
+- Transaction-state progression through the Anchor Platform
+- Dockerized multi-service local environment
+
+The current demo validates a local authenticated SEP-24 deposit flow progressing to `pending_user_transfer_start`.
+
+Demo: https://youtu.be/_umo4bxZgA4
 
 ## Architecture
-- **SEP Server:** Stellar protocol endpoints (port 8080)
-- **Platform Server:** Core anchor platform API (port 8085)
-- **Business Server:** Custom business logic (port 8081)
-- **Stellar Observer:** Blockchain monitoring
-- **Database:** PostgreSQL with initialization
+
+The local environment includes:
+
+- **SEP Server:** Stellar protocol endpoints on port 8080
+- **Platform Server:** Anchor Platform API on port 8085
+- **Business Server:** Custom business logic on port 8081
+- **Stellar Observer:** Transaction monitoring
+- **Database:** PostgreSQL for platform state and transaction data
 
 ## Project Structure
-- **config/** - Stellar anchor platform configuration files
-- **static_resources/** - Interactive flow assets and UI components (planned)
-- **server.js** - Business logic and transaction processing
-- **docker-compose.yml** - Multi-service orchestration
-- **dev.env.template** - Environment configuration template
-- **init.sql** - Database initialization script
+
+- `config/` - Stellar Anchor Platform configuration files
+- `static_resources/` - Interactive flow assets and UI components
+- `server.js` - Business-server logic for local session and transaction-flow handling
+- `docker-compose.yml` - Multi-service orchestration
+- `dev.env.template` - Environment configuration template
+- `init.sql` - Database initialization script
 
 ## Quick Start
+
 1. Copy `dev.env.template` to `dev.env`
-2. Fill in your database password and JWT secrets
-3. Run `docker-compose up`
-4. Access anchor at `http://localhost:8080`
+2. Fill in local development values for database and JWT configuration
+3. Run:
 
-## Features
-- Complete SEP-24 implementation (deposit/withdrawal)
-- Multi-secret JWT validation
-- Background transaction monitoring
-- Docker orchestration
-- Production-ready error handling
-- Interactive flow support (UI components planned)
-
-## Technical Implementation
-- **Multi-service Docker architecture** with proper service dependencies
-- **Advanced JWT token validation** supporting multiple secret rotation
-- **Background transaction polling** for real-time blockchain monitoring
-- **Comprehensive error handling** with detailed logging
-- **Production-ready configuration** with environment variable management
-
-## SCF Build Award
-This platform serves as the foundation for implementing comprehensive cross-border payment infrastructure across Africa, extending to SEP-31 and mobile applications.
-
-## Development Status
-- ✅ SEP-24 complete and functional
-- ✅ Docker orchestration implemented
-- ✅ Business logic and transaction processing
-- ✅ Database integration and initialization
-- 🔄 SEP-31 cross-border routing implementation planned
-- 🔄 SEP-12 KYC/AML compliance integration planned
-- 🔄 Interactive UI components development planned
-- 🔄 Mobile application development planned
-
-## Environment Setup
-Generate secure secrets for your environment:
 ```bash
-# Generate JWT secrets
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-```
-
-## Services
-- **SEP Server (8080):** Handles SEP-24 protocol endpoints
-- **Platform Server (8085):** Core anchor platform API
-- **Business Server (8081):** Custom business logic and transaction processing
-- **Database (5432):** PostgreSQL with automatic initialization
-- **Stellar Observer:** Monitors blockchain for transaction updates
+docker-compose up --build
