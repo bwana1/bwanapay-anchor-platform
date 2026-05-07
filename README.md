@@ -50,3 +50,52 @@ The local environment includes:
 
 ```bash
 docker-compose up --build
+```
+
+4. Access the local anchor at:
+
+```text
+http://localhost:8080
+```
+
+## Implemented Local Flows
+
+- SEP-1 discovery through `.well-known/stellar.toml`
+- SEP-10 challenge retrieval, signing, and JWT issuance
+- SEP-24 interactive deposit initiation
+- Business-session creation from a platform-issued token
+- Transaction-state progression to `pending_user_transfer_start`
+- Transaction inspection through a local business-server route
+
+## Planned Development
+
+Planned next steps include:
+
+- Stellar testnet deployment
+- SEP-12 KYC/AML workflow support
+- SEP-31 cross-border payment orchestration
+- Further transaction-flow hardening
+- Corridor-specific pilot preparation
+- Interactive UI and mobile application development
+
+## Environment Setup
+
+Generate secure secrets for local development:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+Do not commit real environment secrets, private keys, JWTs, or production credentials.
+
+## Services
+
+- **SEP Server (8080):** Handles SEP protocol endpoints
+- **Platform Server (8085):** Core Anchor Platform API
+- **Business Server (8081):** Custom local business logic and transaction-flow handling
+- **Database (5432):** PostgreSQL with initialization
+- **Stellar Observer:** Monitors Stellar transaction activity
+
+## Important Notice
+
+This repository is for development and testnet preparation only. BwanaPay is not currently live, does not process production transactions, and does not represent a regulated financial service in operation.
