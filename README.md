@@ -7,6 +7,12 @@ Platform stack and BwanaPay business server used by the current SCF/CV Labs demo
 The current branch demonstrates a controlled Stellar testnet prototype, not a
 live production service.
 
+## Reviewer Links
+
+- Recorded demo video: https://youtu.be/YKCVPRTT658
+- Technical architecture document: https://drive.google.com/file/d/1RCgh7r4R54O8kTQLBuRJqcqVcNhMWTlw/view?usp=sharing
+- Project website: https://bwanapay.com
+
 ## Current Demo State
 
 The demo proves these working pieces:
@@ -66,6 +72,69 @@ for Anchor Platform discovery/SEP-24 availability.
 For Android Emulator demos, public URLs are configured with `10.0.2.2`, which is
 the emulator bridge to the host machine. Host-side terminal commands should use
 `localhost`.
+
+```mermaid
+flowchart LR
+  Wallet[Companion mobile wallet demo client]
+  Business[BwanaPay business server<br/>8081]
+  Sep[Anchor Platform SEP server<br/>8080]
+  Platform[Anchor Platform API<br/>8085]
+  Observer[Stellar observer]
+  Db[(Postgres)]
+  Stellar[Stellar testnet<br/>USDC proof]
+
+  Wallet -->|quote / transaction / status| Business
+  Wallet -->|SEP-24 info / hosted flow| Sep
+  Business -->|SEP-24 deposit/withdraw| Sep
+  Business -->|Platform transaction lookup/update| Platform
+  Business -->|persist corridor data| Db
+  Sep --> Db
+  Platform --> Db
+  Observer --> Stellar
+  Business -->|testnet proof transaction| Stellar
+```
+
+## Reviewer Quick Verification
+
+These checks are intended to help reviewers confirm the backend and Anchor stack
+without needing the mobile client source.
+
+```powershell
+# 1. Static syntax check
+npm run check
+
+# 2. Start the local stack
+docker-compose up -d --build
+
+# 3. Confirm containers
+docker-compose ps
+
+# 4. Check business server health
+Invoke-RestMethod http://localhost:8081/health
+
+# 5. Check Testnet Status backend data
+Invoke-RestMethod `
+  -Method Get `
+  -Uri http://localhost:8081/demo-readiness `
+  -Headers @{ 'X-BwanaPay-Demo-Key' = '<demo-api-key>' }
+
+# 6. Check SEP-24 availability
+Invoke-RestMethod http://localhost:8080/sep24/info
+
+# 7. Create a quote for the Zambia to Malawi corridor
+$body = @{
+  fromCurrency = 'ZMW'
+  toCurrency = 'MWK'
+  amount = 100
+} | ConvertTo-Json
+
+Invoke-RestMethod `
+  -Method Post `
+  -Uri http://localhost:8081/corridor/quote `
+  -Headers @{ 'X-BwanaPay-Demo-Key' = '<demo-api-key>' } `
+  -ContentType 'application/json' `
+  -Body $body
+```
 
 ## Setup
 
@@ -153,6 +222,68 @@ Invoke-RestMethod `
   -Headers @{ 'X-BwanaPay-Demo-Key' = '<demo-api-key>' } `
   -ContentType 'application/json' `
   -Body $body
+```
+
+## Example API Responses
+
+Trimmed example response from `POST /corridor/quote`:
+
+```json
+{
+  "success": true,
+  "quote": {
+    "id": "bp-quote-...",
+    "fromCountry": "ZM",
+    "toCountry": "MW",
+    "fromCurrency": "ZMW",
+    "toCurrency": "MWK",
+    "sendAmount": 100,
+    "fee": 2,
+    "recipientAmount": 6370,
+    "exchangeRate": 65,
+    "estimatedDelivery": "Testnet demo"
+  }
+}
+```
+
+Trimmed example response from `GET /demo-readiness`:
+
+```json
+{
+  "ok": true,
+  "network_passphrase": "Test SDF Network ; September 2015",
+  "checks": {
+    "business_server": { "ok": true },
+    "demo_auth": { "ok": true, "mode": "api_key" },
+    "persistence": { "ok": true },
+    "sep24_info": { "ok": true },
+    "platform_api": { "ok": true },
+    "stellar_testnet": { "ok": true },
+    "proof_asset": { "ok": true, "asset": "stellar:USDC:..." }
+  }
+}
+```
+
+Trimmed example corridor transaction fields:
+
+```json
+{
+  "success": true,
+  "transaction": {
+    "id": "bp-corridor-...",
+    "status": "pending_user_transfer_start",
+    "corridor": "ZM-MW",
+    "fromCurrency": "ZMW",
+    "toCurrency": "MWK",
+    "anchorTransactionId": "...",
+    "stellarProofStatus": "confirmed",
+    "stellarProof": {
+      "hash": "...",
+      "ledger": 123456,
+      "network_passphrase": "Test SDF Network ; September 2015"
+    }
+  }
+}
 ```
 
 ## Proof Script
