@@ -1,101 +1,207 @@
-# BwanaPay Anchor Platform
+# BwanaPay Anchor Platform Corridor Demo
 
-This repository contains local development infrastructure for BwanaPay’s anchor-based cross-border payment implementation. It does not represent a live regulated financial service.
+BwanaPay is a corridor-first payments prototype for Southern Africa, starting
+with the Zambia-Malawi corridor. This repository contains the local Anchor
+Platform stack and BwanaPay business server used by the current SCF/CV Labs demo.
 
-## Overview
+The current branch demonstrates a controlled Stellar testnet prototype, not a
+live production service.
 
-BwanaPay is a Zambia-first cross-border payment infrastructure project using Stellar anchor architecture. The goal is to support regulated fiat on- and off-ramp workflows, custodial transaction services, interoperable settlement, and future anchor-to-anchor coordination across African payment corridors.
+## Current Demo State
 
-This repository contains a local Anchor Platform setup used to validate core protocol flows and business-server integration before testnet deployment.
+The demo proves these working pieces:
 
-## Current Development Status
+- Stellar Anchor Platform 4.3.0 running locally with SEP server, Platform server,
+  Stellar observer, and Postgres.
+- SEP-1 service discovery, SEP-10 authentication, and SEP-24 hosted deposit and
+  withdrawal flow validation.
+- BwanaPay business server on port `8081`.
+- Guarded demo endpoints using `X-BwanaPay-Demo-Key`.
+- Corridor quote, transaction creation, transaction lookup, and persisted status
+  handling.
+- Zambia to Malawi and Malawi to Zambia corridor directions in controlled
+  testnet/demo form.
+- Testnet USDC proof transaction generation and explorer link handling.
+- Mobile wallet integration through the companion `bp-wallet` app.
 
-The current local implementation includes:
+The demo app uses these user-facing screens:
 
-- SEP-1 service discovery
-- SEP-10 challenge-response authentication
-- SEP-24 interactive deposit flow handling
-- Custom business-server session handling
-- Transaction-state progression through the Anchor Platform
-- Dockerized multi-service local environment
+- Home: `Send to Malawi`, `Request from Malawi`, `Transfer Status`, recent
+  activity, `Add Money`, `Cash Out`, and `Testnet Proof`.
+- Send: corridor transfer flow, recipient management, and local send placeholder.
+- Activity: transaction history and testnet proof coverage.
+- Side menu: `Testnet Status`, theme toggle, and reset.
 
-The current demo validates a local authenticated SEP-24 deposit flow progressing to `pending_user_transfer_start`.
+## Not Part of This Demo Branch
 
-Demo: https://youtu.be/_umo4bxZgA4
+The following are intentionally not claimed as complete in this branch:
 
-## Architecture
+- Production KYC/AML completion.
+- Live fiat collection.
+- Live mobile-money payout.
+- Live liquidity operations.
+- Mainnet remittance operation.
+- ZMW or MWK token issuance.
+- Completed production SEP-31 deployment.
+- Third-party KYC provider integration.
 
-The local environment includes:
+KYC/AML, fiat collection, payout integrations, and liquidity operations remain
+compliance-gated and partner-dependent roadmap items.
 
-- **SEP Server:** Stellar protocol endpoints on port 8080
-- **Platform Server:** Anchor Platform API on port 8085
-- **Business Server:** Custom business logic on port 8081
-- **Stellar Observer:** Transaction monitoring
-- **Database:** PostgreSQL for platform state and transaction data
+## Architecture Summary
 
-## Project Structure
+Local services:
 
-- `config/` - Stellar Anchor Platform configuration files
-- `static_resources/` - Interactive flow assets and UI components
-- `server.js` - Business-server logic for local session and transaction-flow handling
-- `docker-compose.yml` - Multi-service orchestration
-- `dev.env.template` - Environment configuration template
-- `init.sql` - Database initialization script
+| Service | Port | Purpose |
+| --- | ---: | --- |
+| `sep-server` | `8080` | Anchor Platform SEP server, SEP-1/SEP-10/SEP-24 |
+| `platform-server` | `8085` | Anchor Platform API |
+| `stellar-observer` | internal | Watches testnet payment activity |
+| `db` | `5432` | Postgres persistence |
+| `business-server` | `8081` | BwanaPay demo API and corridor orchestration |
 
-## Quick Start
+The mobile app calls the business server for corridor flows and the SEP server
+for Anchor Platform discovery/SEP-24 availability.
 
-1. Copy `dev.env.template` to `dev.env`
-2. Fill in local development values for database and JWT configuration
-3. Run:
+For Android Emulator demos, public URLs are configured with `10.0.2.2`, which is
+the emulator bridge to the host machine. Host-side terminal commands should use
+`localhost`.
 
-```bash
-docker-compose up --build
+## Setup
+
+1. Copy and edit environment configuration:
+
+```powershell
+cd path\to\bp-anchor
+Copy-Item dev.env.example dev.env
 ```
 
-4. Access the local anchor at:
+2. Fill in local testnet/demo secrets in `dev.env`.
+
+Use:
+
+- `10.0.2.2` for emulator-facing public URLs.
+- Your PC LAN IP for a physical Android device on the same Wi-Fi/hotspot.
+- `localhost` for host-side PowerShell checks.
+
+3. Start the stack:
+
+```powershell
+docker-compose up -d --build
+```
+
+4. Confirm services are running:
+
+```powershell
+docker-compose ps
+```
+
+## Health And Readiness Checks
+
+Business server health:
+
+```powershell
+Invoke-RestMethod http://localhost:8081/health
+```
+
+Testnet Status backend proof:
+
+```powershell
+Invoke-RestMethod `
+  -Method Get `
+  -Uri http://localhost:8081/demo-readiness `
+  -Headers @{ 'X-BwanaPay-Demo-Key' = '<demo-api-key>' }
+```
+
+SEP-24 info:
+
+```powershell
+Invoke-RestMethod http://localhost:8080/sep24/info
+```
+
+## Demo API Endpoints
+
+All guarded demo endpoints require:
 
 ```text
-http://localhost:8080
+X-BwanaPay-Demo-Key: <demo-api-key>
 ```
 
-## Implemented Local Flows
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/health` | Business server health |
+| `GET` | `/demo-readiness` | Testnet Status data for app/readiness checks |
+| `POST` | `/demo-transaction` | Create Anchor-backed demo deposit |
+| `POST` | `/demo-withdrawal` | Create Anchor-backed demo withdrawal |
+| `GET` | `/platform-transaction/:id` | Inspect Anchor Platform transaction |
+| `POST` | `/corridor/quote` | Create corridor quote |
+| `POST` | `/corridor/transaction` | Create persisted corridor transaction |
+| `GET` | `/corridor/transaction/:id` | Fetch corridor transaction status/proof |
 
-- SEP-1 discovery through `.well-known/stellar.toml`
-- SEP-10 challenge retrieval, signing, and JWT issuance
-- SEP-24 interactive deposit initiation
-- Business-session creation from a platform-issued token
-- Transaction-state progression to `pending_user_transfer_start`
-- Transaction inspection through a local business-server route
+Example corridor quote:
 
-## Planned Development
+```powershell
+$body = @{
+  fromCurrency = 'ZMW'
+  toCurrency = 'MWK'
+  amount = 100
+} | ConvertTo-Json
 
-Planned next steps include:
-
-- Stellar testnet deployment
-- SEP-12 KYC/AML workflow support
-- SEP-31 cross-border payment orchestration
-- Further transaction-flow hardening
-- Corridor-specific pilot preparation
-- Interactive UI and mobile application development
-
-## Environment Setup
-
-Generate secure secrets for local development:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+Invoke-RestMethod `
+  -Method Post `
+  -Uri http://localhost:8081/corridor/quote `
+  -Headers @{ 'X-BwanaPay-Demo-Key' = '<demo-api-key>' } `
+  -ContentType 'application/json' `
+  -Body $body
 ```
 
-Do not commit real environment secrets, private keys, JWTs, or production credentials.
+## Proof Script
 
-## Services
+The helper script creates a measurable Anchor-backed deposit and prints the
+Platform transaction ID, status, hosted SEP-24 URL, and Stellar testnet proof.
 
-- **SEP Server (8080):** Handles SEP protocol endpoints
-- **Platform Server (8085):** Core Anchor Platform API
-- **Business Server (8081):** Custom local business logic and transaction-flow handling
-- **Database (5432):** PostgreSQL with initialization
-- **Stellar Observer:** Monitors Stellar transaction activity
+```powershell
+cd path\to\bp-anchor
+.\scripts\demo-flow.ps1 `
+  -BusinessServerUrl http://localhost:8081 `
+  -DemoApiKey '<demo-api-key>' `
+  -Amount 25 `
+  -OpenExplorer
+```
 
-## Important Notice
+## Mobile Wallet
 
-This repository is for development and testnet preparation only. BwanaPay is not currently live, does not process production transactions, and does not represent a regulated financial service in operation.
+The companion Expo/React Native wallet app is used in the recorded demo and
+calls this Anchor/business-server stack.
+
+For emulator demos, the wallet `.env` should use:
+
+```text
+EXPO_PUBLIC_ANCHOR_BASE_URL=http://10.0.2.2:8080
+EXPO_PUBLIC_BUSINESS_SERVER_URL=http://10.0.2.2:8081
+EXPO_PUBLIC_STELLAR_NETWORK_PASSPHRASE=Test SDF Network ; September 2015
+EXPO_PUBLIC_DEMO_API_KEY=<demo-api-key>
+```
+
+Start Metro:
+
+```powershell
+cd path\to\bp-wallet
+npx expo start --dev-client --clear --host localhost --port 8082
+```
+
+## Demo Narrative
+
+Recommended under-3-minute flow:
+
+1. Start on BwanaPay Home.
+2. Briefly show `Send to Malawi`, `Request from Malawi`, and `Transfer Status`.
+3. Open side-menu `Testnet Status` for readiness proof.
+4. Create a `Send to Malawi` transaction.
+5. Show `Transfer Status` with transaction lifecycle and testnet USDC proof.
+6. Close with the production boundary: KYC/AML, fiat collection, mobile-money
+   payout, and liquidity remain compliance-gated and partner-dependent.
+
+## License
+
+Prototype/demo code for BwanaPay technical validation.

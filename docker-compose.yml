@@ -1,7 +1,10 @@
 services:
   sep-server:
-    image: stellar/anchor-platform:latest
+    image: stellar/anchor-platform:4.3.0
     command: --sep-server
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     env_file:
       - ./dev.env
     volumes:
@@ -11,8 +14,11 @@ services:
     depends_on:
       - db
   platform-server:
-    image: stellar/anchor-platform:latest
+    image: stellar/anchor-platform:4.3.0
     command: --platform-server
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     env_file:
       - ./dev.env
     volumes:
@@ -22,8 +28,11 @@ services:
     depends_on:
       - db
   stellar-observer:
-    image: stellar/anchor-platform:latest
+    image: stellar/anchor-platform:4.3.0
     command: --stellar-observer
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     env_file:
       - ./dev.env
     volumes:
@@ -40,6 +49,9 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
   business-server:
     build: .
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     ports:
       - "8081:8081"
     env_file:

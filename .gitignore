@@ -1,37 +1,13 @@
-# Environment files with secrets
-dev.env
-.env
-*.env
-
-# Node modules
 node_modules/
+npm-debug.log
+package-lock.json.tmp
 
-# Logs
-*.log
-npm-debug.log*
+# Local demo secrets and generated Anchor inspection artifacts.
+dev.env
+anchor-platform-runner.jar
+jar-inspect/
 
-# Runtime data
-pids
-*.pid
-*.seed
-
-# Database
-*.db
-*.sqlite
-
-# Docker
-.dockerignore
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
+# Local OS/editor noise.
 .DS_Store
-Thumbs.db
-
-# Temporary files
-*.tmp
-*.temp
+.idea/
+.vscode/

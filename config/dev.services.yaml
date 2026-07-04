@@ -11,6 +11,6 @@ data:
   flyway_enabled: true
 sep24:
   interactive_url:
-    base_url: "http://localhost/sep24"
+    base_url: "http://10.0.2.2:8080/sep24"
   more_info_url:
-    base_url: "http://localhost/sep24/info"
+    base_url: "http://10.0.2.2:8080/sep24/info"

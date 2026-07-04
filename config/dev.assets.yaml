@@ -1,6 +1,5 @@
-# dev.assets.yaml
 items:
-- id: stellar:USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5
+- id: stellar:USDC:GBDCIPVATEVRFJM5IPOLET6GM3CKMUCE27RSRO67EEZ6VTV4EBG4A5JZ
   distribution_account: GBXNUYF3J6LCYBC33CKDDJUPRSVEURKTGGP2CBSV6JNTP7BU766UMAX7
   significant_decimals: 2
   sep24:
@@ -23,6 +22,11 @@ items:
     enabled: false
 
 - id: iso4217:USD
+  significant_decimals: 2
+  sep31:
+    enabled: false
+
+- id: iso4217:ZMW
   significant_decimals: 2
   sep31:
     enabled: false

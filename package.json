@@ -10,8 +10,14 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "node-fetch": "^2.7.0"
+    "@stellar/stellar-sdk": "^15.1.0",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "node-fetch": "^2.7.0",
+    "pg": "^8.21.0"
+  },
+  "overrides": {
+    "axios": "^1.17.0",
+    "path-to-regexp": "^8.4.2"
   }
 }
