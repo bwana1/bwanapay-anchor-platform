@@ -15,14 +15,14 @@ Confirm the backend:
 Invoke-RestMethod http://localhost:8081/health
 ```
 
-## Start Mobile App
+## Start Mobile Demo Client
 
 ```powershell
-cd path\to\bp-wallet
+cd path\to\companion-mobile-client
 npx expo start --dev-client --clear --host localhost --port 8082
 ```
 
-Press `a` for the emulator, or open the installed development build. The wallet and Anchor public URLs in this demo branch are configured for Android Emulator access through `10.0.2.2`. Host-side PowerShell checks should still use `localhost`.
+Press `a` for the emulator, or open the installed development build. The companion wallet client shown in the recorded demo calls this Anchor/business-server stack and uses Android Emulator access through `10.0.2.2`. Host-side PowerShell checks should still use `localhost`.
 
 ## Backend Proof Script
 

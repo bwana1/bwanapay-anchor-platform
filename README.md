@@ -22,7 +22,7 @@ The demo proves these working pieces:
 - Zambia to Malawi and Malawi to Zambia corridor directions in controlled
   testnet/demo form.
 - Testnet USDC proof transaction generation and explorer link handling.
-- Mobile wallet integration through the companion `bp-wallet` app.
+- Mobile wallet integration through a companion Expo/React Native demo client.
 
 The demo app uses these user-facing screens:
 
@@ -171,10 +171,13 @@ cd path\to\bp-anchor
 
 ## Mobile Wallet
 
-The companion Expo/React Native wallet app is used in the recorded demo and
-calls this Anchor/business-server stack.
+The recorded demo uses a companion Expo/React Native wallet client that calls
+this Anchor/business-server stack. This repository is focused on the Anchor
+Platform and backend integration layer; the mobile client is shown in the demo
+video as the user-facing interface.
 
-For emulator demos, the wallet `.env` should use:
+For Android Emulator demos, the wallet client points at the host machine through
+`10.0.2.2`:
 
 ```text
 EXPO_PUBLIC_ANCHOR_BASE_URL=http://10.0.2.2:8080
@@ -183,24 +186,17 @@ EXPO_PUBLIC_STELLAR_NETWORK_PASSPHRASE=Test SDF Network ; September 2015
 EXPO_PUBLIC_DEMO_API_KEY=<demo-api-key>
 ```
 
-Start Metro:
-
-```powershell
-cd path\to\bp-wallet
-npx expo start --dev-client --clear --host localhost --port 8082
-```
-
 ## Demo Narrative
 
-Recommended under-3-minute flow:
+Recorded demo flow:
 
 1. Start on BwanaPay Home.
 2. Briefly show `Send to Malawi`, `Request from Malawi`, and `Transfer Status`.
 3. Open side-menu `Testnet Status` for readiness proof.
 4. Create a `Send to Malawi` transaction.
 5. Show `Transfer Status` with transaction lifecycle and testnet USDC proof.
-6. Close with the production boundary: KYC/AML, fiat collection, mobile-money
-   payout, and liquidity remain compliance-gated and partner-dependent.
+6. Close with the production boundary: KYC/AML, fiat collection, payout
+   integrations, and liquidity remain compliance-gated and partner-dependent.
 
 ## License
 
