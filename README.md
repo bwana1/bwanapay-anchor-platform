@@ -37,10 +37,10 @@ The demo app uses these user-facing screens:
 The following are intentionally not claimed as complete in this branch:
 
 - Production KYC/AML completion.
-- Live fiat collection.
-- Live mobile-money payout.
-- Live liquidity operations.
-- Mainnet remittance operation.
+- Production fiat collection.
+- Production payout execution.
+- Production liquidity operations.
+- Mainnet corridor operation.
 - ZMW or MWK token issuance.
 - Completed production SEP-31 deployment.
 - Third-party KYC provider integration.
