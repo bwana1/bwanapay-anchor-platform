@@ -10,7 +10,7 @@ live production service.
 ## Reviewer Links
 
 - Recorded demo video: https://youtu.be/YKCVPRTT658
-- Technical architecture document: https://drive.google.com/file/d/1RCgh7r4R54O8kTQLBuRJqcqVcNhMWTlw/view?usp=sharing
+- Technical architecture document: https://drive.google.com/file/d/1Ol0lmVS17ccfu3WRaNLOljFB9iV1Dxtk/view?usp=sharing
 - Project website: https://bwanapay.com
 
 ## Current Demo State
