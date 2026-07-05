@@ -571,35 +571,6 @@ app.get("/demo-readiness", requireDemoAccess, async (req, res) => {
   });
 });
 
-app.get("/test-jwt", (req, res) => {
-  try {
-    const testJwt = jwt.sign(
-      { test: "data" },
-      requireEnv("SECRET_SEP10_JWT_SECRET"),
-      { algorithm: "HS256" }
-    );
-
-    const verified = jwt.verify(
-      testJwt,
-      requireEnv("SECRET_SEP10_JWT_SECRET"),
-      { algorithms: ["HS256"] }
-    );
-
-    return res.send({
-      success: true,
-      message: "JWT signing and verification works correctly",
-      jwt: testJwt,
-      verified
-    });
-  } catch (err) {
-    return res.status(500).send({
-      success: false,
-      message: "JWT verification failed",
-      error: err.toString()
-    });
-  }
-});
-
 function validatePlatformToken(token) {
   if (!token) {
     throw "missing 'platformToken'";

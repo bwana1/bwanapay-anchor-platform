@@ -307,6 +307,10 @@ this Anchor/business-server stack. This repository is focused on the Anchor
 Platform and backend integration layer; the mobile client is shown in the demo
 video as the user-facing interface.
 
+The companion mobile wallet source is maintained separately; this repository is
+intended to document and verify the Anchor Platform and business-server
+integration layer used by the recorded demo.
+
 For Android Emulator demos, the wallet client points at the host machine through
 `10.0.2.2`:
 
