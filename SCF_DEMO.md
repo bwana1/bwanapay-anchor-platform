@@ -32,7 +32,7 @@ Run this before or during the app demo to create a measurable transaction:
 cd path\to\bp-anchor
 .\scripts\demo-flow.ps1 `
   -BusinessServerUrl http://localhost:8081 `
-  -DemoApiKey '<demo-api-key>' `
+  -DemoApiKey '<YOUR_DEMO_API_KEY>' `
   -Amount 25 `
   -OpenExplorer
 ```

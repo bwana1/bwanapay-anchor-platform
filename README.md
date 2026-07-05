@@ -116,7 +116,7 @@ Invoke-RestMethod http://localhost:8081/health
 Invoke-RestMethod `
   -Method Get `
   -Uri http://localhost:8081/demo-readiness `
-  -Headers @{ 'X-BwanaPay-Demo-Key' = '<demo-api-key>' }
+  -Headers @{ 'X-BwanaPay-Demo-Key' = '<YOUR_DEMO_API_KEY>' }
 
 # 6. Check SEP-24 availability
 Invoke-RestMethod http://localhost:8080/sep24/info
@@ -131,7 +131,7 @@ $body = @{
 Invoke-RestMethod `
   -Method Post `
   -Uri http://localhost:8081/corridor/quote `
-  -Headers @{ 'X-BwanaPay-Demo-Key' = '<demo-api-key>' } `
+  -Headers @{ 'X-BwanaPay-Demo-Key' = '<YOUR_DEMO_API_KEY>' } `
   -ContentType 'application/json' `
   -Body $body
 ```
@@ -179,7 +179,7 @@ Testnet Status backend proof:
 Invoke-RestMethod `
   -Method Get `
   -Uri http://localhost:8081/demo-readiness `
-  -Headers @{ 'X-BwanaPay-Demo-Key' = '<demo-api-key>' }
+  -Headers @{ 'X-BwanaPay-Demo-Key' = '<YOUR_DEMO_API_KEY>' }
 ```
 
 SEP-24 info:
@@ -193,8 +193,11 @@ Invoke-RestMethod http://localhost:8080/sep24/info
 All guarded demo endpoints require:
 
 ```text
-X-BwanaPay-Demo-Key: <demo-api-key>
+X-BwanaPay-Demo-Key: <YOUR_DEMO_API_KEY>
 ```
+
+Set `DEMO_API_KEY` in `dev.env` and send the same value using the
+`X-BwanaPay-Demo-Key` header when calling guarded demo endpoints.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
@@ -219,7 +222,7 @@ $body = @{
 Invoke-RestMethod `
   -Method Post `
   -Uri http://localhost:8081/corridor/quote `
-  -Headers @{ 'X-BwanaPay-Demo-Key' = '<demo-api-key>' } `
+  -Headers @{ 'X-BwanaPay-Demo-Key' = '<YOUR_DEMO_API_KEY>' } `
   -ContentType 'application/json' `
   -Body $body
 ```
@@ -295,7 +298,7 @@ Platform transaction ID, status, hosted SEP-24 URL, and Stellar testnet proof.
 cd path\to\bp-anchor
 .\scripts\demo-flow.ps1 `
   -BusinessServerUrl http://localhost:8081 `
-  -DemoApiKey '<demo-api-key>' `
+  -DemoApiKey '<YOUR_DEMO_API_KEY>' `
   -Amount 25 `
   -OpenExplorer
 ```
@@ -318,7 +321,7 @@ For Android Emulator demos, the wallet client points at the host machine through
 EXPO_PUBLIC_ANCHOR_BASE_URL=http://10.0.2.2:8080
 EXPO_PUBLIC_BUSINESS_SERVER_URL=http://10.0.2.2:8081
 EXPO_PUBLIC_STELLAR_NETWORK_PASSPHRASE=Test SDF Network ; September 2015
-EXPO_PUBLIC_DEMO_API_KEY=<demo-api-key>
+EXPO_PUBLIC_DEMO_API_KEY=<YOUR_DEMO_API_KEY>
 ```
 
 ## Demo Narrative
