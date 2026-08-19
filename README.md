@@ -2,7 +2,7 @@
 
 BwanaPay is a corridor-first payments prototype for Southern Africa, starting
 with the Zambia-Malawi corridor. This repository contains the local Anchor
-Platform stack and BwanaPay business server used by the current SCF/CV Labs demo.
+Platform stack and BwanaPay business server used by the current demo.
 
 The current branch demonstrates a controlled Stellar testnet prototype, not a
 live production service.
